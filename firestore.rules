@@ -108,9 +108,11 @@ service cloud.firestore {
     }
 
     match /registeredStudents/{registrationId} {
-      allow read: if isAdmin();
+      allow get: if true; // Anyone can check if a specific ID is registered
+      allow list: if isAdmin();
       allow create: if (isAdmin() || (isRegistrationActive() && isAllowedStudent(request.resource.data.number, request.resource.data.name))) 
-                    && isValidRegistration(request.resource.data);
+                    && isValidRegistration(request.resource.data)
+                    && request.resource.data.number == registrationId;
       allow update: if isAdmin() && isValidRegistration(request.resource.data);
       allow delete: if isAdmin();
     }

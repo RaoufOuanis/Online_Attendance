@@ -179,16 +179,14 @@ export default function App() {
       const studentName = allowedDoc.data().name;
 
       // Check if already registered
-      const q = query(collection(db, "registeredStudents"));
-      const querySnapshot = await getDocs(q);
-      const alreadyRegistered = querySnapshot.docs.some(d => d.data().number === studentNumber);
+      const registeredDoc = await getDoc(doc(db, "registeredStudents", studentNumber));
       
-      if (alreadyRegistered) {
+      if (registeredDoc.exists()) {
         throw new Error("لقد قمت بتسجيل حضورك مسبقاً");
       }
 
       // Register
-      const newDocRef = doc(collection(db, "registeredStudents"));
+      const newDocRef = doc(db, "registeredStudents", studentNumber);
       await setDoc(newDocRef, {
         number: studentNumber,
         name: studentName,
