@@ -1,0 +1,62 @@
+{
+  "entities": {
+    "RegistrationSettings": {
+      "title": "Registration Settings",
+      "description": "Global settings for registration",
+      "type": "object",
+      "properties": {
+        "active": { "type": "boolean" }
+      },
+      "required": ["active"]
+    },
+    "AllowedStudent": {
+      "title": "Allowed Student",
+      "description": "A student allowed to register",
+      "type": "object",
+      "properties": {
+        "number": { "type": "string" },
+        "name": { "type": "string" }
+      },
+      "required": ["number", "name"]
+    },
+    "RegisteredStudent": {
+      "title": "Registered Student",
+      "description": "A student who has registered",
+      "type": "object",
+      "properties": {
+        "number": { "type": "string" },
+        "name": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["number", "name", "timestamp"]
+    },
+    "AdminUser": {
+      "title": "Admin User",
+      "description": "Admin user role",
+      "type": "object",
+      "properties": {
+        "role": { "type": "string", "enum": ["admin"] },
+        "email": { "type": "string" }
+      },
+      "required": ["role", "email"]
+    }
+  },
+  "firestore": {
+    "/settings/registration": {
+      "schema": { "$ref": "#/entities/RegistrationSettings" },
+      "description": "Registration active status"
+    },
+    "/allowedStudents/{studentNumber}": {
+      "schema": { "$ref": "#/entities/AllowedStudent" },
+      "description": "List of students allowed to register"
+    },
+    "/registeredStudents/{registrationId}": {
+      "schema": { "$ref": "#/entities/RegisteredStudent" },
+      "description": "List of successful registrations"
+    },
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/AdminUser" },
+      "description": "Admin users"
+    }
+  }
+}

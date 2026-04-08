@@ -1,0 +1,125 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: settings
+    // Document ID: registration
+    // Fields:
+    //   - active: boolean (required)
+    //
+    // Collection: allowedStudents
+    // Document ID: studentNumber
+    // Fields:
+    //   - number: string (required)
+    //   - name: string (required)
+    //
+    // Collection: registeredStudents
+    // Document ID: random
+    // Fields:
+    //   - number: string (required)
+    //   - name: string (required)
+    //   - timestamp: string (ISO 8601 date string) (required)
+    //
+    // Collection: users
+    // Document ID: userId
+    // Fields:
+    //   - role: string (required, 'admin')
+    //   - email: string (required)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "raouf.lakehal.ayat@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isRegistrationActive() {
+      return get(/databases/$(database)/documents/settings/registration).data.active == true;
+    }
+
+    function isAllowedStudent(number, name) {
+      let allowedDoc = get(/databases/$(database)/documents/allowedStudents/$(number));
+      return allowedDoc != null && allowedDoc.data.name == name;
+    }
+
+    function isValidDateString(dateStr) {
+      return dateStr is string &&
+        dateStr.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$");
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidRegistration(data) {
+      return hasOnlyAllowedFields(['number', 'name', 'timestamp']) &&
+             data.number is string && data.number.size() > 0 && data.number.size() < 50 &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             isValidDateString(data.timestamp);
+    }
+
+    function isValidAllowedStudent(data) {
+      return hasOnlyAllowedFields(['number', 'name']) &&
+             data.number is string && data.number.size() > 0 && data.number.size() < 50 &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100;
+    }
+
+    function isValidSettings(data) {
+      return hasOnlyAllowedFields(['active']) && data.active is bool;
+    }
+
+    function isValidUser(data) {
+      return hasOnlyAllowedFields(['role', 'email']) &&
+             data.role == 'admin' &&
+             data.email is string && data.email.size() > 0 && data.email.size() < 100;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /settings/registration {
+      allow read: if true; // Anyone can check if registration is active
+      allow write: if isAdmin() && isValidSettings(request.resource.data);
+    }
+
+    match /allowedStudents/{studentNumber} {
+      allow get: if true; // Anyone can check if a specific student is allowed
+      allow list: if isAdmin(); // Only admins can list all allowed students
+      allow write: if isAdmin() && isValidAllowedStudent(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /registeredStudents/{registrationId} {
+      allow read: if isAdmin();
+      allow create: if (isAdmin() || (isRegistrationActive() && isAllowedStudent(request.resource.data.number, request.resource.data.name))) 
+                    && isValidRegistration(request.resource.data);
+      allow update: if isAdmin() && isValidRegistration(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /users/{userId} {
+      allow read: if isAdmin() || request.auth.uid == userId;
+      allow create: if isAuthenticated() && isValidUser(request.resource.data) && isAdmin();
+      allow update: if isAuthenticated() && isValidUser(request.resource.data) && isAdmin();
+      allow delete: if isAdmin();
+    }
+  }
+}
