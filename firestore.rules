@@ -50,8 +50,8 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/settings/registration).data.active == true;
     }
 
-    function isAllowedStudent(number, name) {
-      let allowedDoc = get(/databases/$(database)/documents/allowedStudents/$(number));
+    function isAllowedStudent(shortNumber, name) {
+      let allowedDoc = get(/databases/$(database)/documents/allowedStudents/$(shortNumber));
       return allowedDoc != null && allowedDoc.data.name == name;
     }
 
@@ -69,8 +69,9 @@ service cloud.firestore {
     // ===============================================================
 
     function isValidRegistration(data) {
-      return hasOnlyAllowedFields(['number', 'name', 'timestamp']) &&
+      return hasOnlyAllowedFields(['number', 'shortNumber', 'name', 'timestamp']) &&
              data.number is string && data.number.size() > 0 && data.number.size() < 50 &&
+             data.shortNumber is string && data.shortNumber.size() > 0 && data.shortNumber.size() <= 8 &&
              data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
              isValidDateString(data.timestamp);
     }
@@ -110,7 +111,7 @@ service cloud.firestore {
     match /registeredStudents/{registrationId} {
       allow get: if true; // Anyone can check if a specific ID is registered
       allow list: if isAdmin();
-      allow create: if (isAdmin() || (isRegistrationActive() && isAllowedStudent(request.resource.data.number, request.resource.data.name))) 
+      allow create: if (isAdmin() || (isRegistrationActive() && isAllowedStudent(request.resource.data.shortNumber, request.resource.data.name))) 
                     && isValidRegistration(request.resource.data)
                     && request.resource.data.number == registrationId;
       allow update: if isAdmin() && isValidRegistration(request.resource.data);

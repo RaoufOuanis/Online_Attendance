@@ -170,25 +170,30 @@ export default function App() {
         throw new Error("التسجيل مغلق حالياً");
       }
 
-      // Check if student is allowed
-      const allowedDoc = await getDoc(doc(db, "allowedStudents", studentNumber));
+      const enteredNumber = studentNumber.trim();
+      const shortNumber = enteredNumber.slice(-8);
+
+      // Check if student is allowed using short number
+      const allowedDoc = await getDoc(doc(db, "allowedStudents", shortNumber));
       if (!allowedDoc.exists()) {
         throw new Error("رقم الطالب غير موجود في قائمة المسموح لهم بالتسجيل");
       }
 
       const studentName = allowedDoc.data().name;
+      const fullNumberFromDb = allowedDoc.data().number;
 
-      // Check if already registered
-      const registeredDoc = await getDoc(doc(db, "registeredStudents", studentNumber));
+      // Check if already registered using the full number
+      const registeredDoc = await getDoc(doc(db, "registeredStudents", fullNumberFromDb));
       
       if (registeredDoc.exists()) {
         throw new Error("لقد قمت بتسجيل حضورك مسبقاً");
       }
 
-      // Register
-      const newDocRef = doc(db, "registeredStudents", studentNumber);
+      // Register using the full number
+      const newDocRef = doc(db, "registeredStudents", fullNumberFromDb);
       await setDoc(newDocRef, {
-        number: studentNumber,
+        number: fullNumberFromDb,
+        shortNumber: shortNumber,
         name: studentName,
         timestamp: new Date().toISOString()
       });
@@ -272,9 +277,11 @@ export default function App() {
   const addAllowed = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await setDoc(doc(db, "allowedStudents", newAllowed.number), {
-        number: newAllowed.number,
-        name: newAllowed.name
+      const fullNumber = newAllowed.number.trim();
+      const shortNumber = fullNumber.slice(-8);
+      await setDoc(doc(db, "allowedStudents", shortNumber), {
+        number: fullNumber,
+        name: newAllowed.name.trim()
       });
       setMessage({ type: "success", text: `تمت إضافة الطالب ${newAllowed.name} بنجاح` });
       setNewAllowed({ number: "", name: "" });
@@ -311,7 +318,8 @@ export default function App() {
           let opCount = 0;
 
           for (const student of students) {
-            const docRef = doc(db, "allowedStudents", student.number);
+            const shortNumber = student.number.slice(-8);
+            const docRef = doc(db, "allowedStudents", shortNumber);
             currentBatch.set(docRef, student);
             opCount++;
 
