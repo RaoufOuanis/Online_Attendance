@@ -76,7 +76,7 @@ export default function App() {
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
-      if (currentUser) {
+      if (currentUser && currentUser.email === "raouf.lakehal.ayat@gmail.com") {
         setIsAdmin(true);
       } else {
         setIsAdmin(false);
