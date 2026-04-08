@@ -242,6 +242,27 @@ export default function App() {
     });
   };
 
+  const clearAllowedList = () => {
+    setConfirmModal({
+      isOpen: true,
+      title: "هل أنت متأكد من حذف قاعدة بيانات الطلاب المسموح لهم بالكامل؟",
+      onConfirm: async () => {
+        try {
+          const snapshot = await getDocs(collection(db, "allowedStudents"));
+          const batch = writeBatch(db);
+          snapshot.docs.forEach((document) => {
+            batch.delete(document.ref);
+          });
+          await batch.commit();
+          setMessage({ type: "success", text: "تم تصفير قاعدة البيانات بنجاح" });
+        } catch (e: any) {
+          setMessage({ type: "error", text: "فشل الحذف: " + e.message });
+        }
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+      }
+    });
+  };
+
   const deleteAllowed = (number: string) => {
     setConfirmModal({
       isOpen: true,
@@ -641,12 +662,21 @@ export default function App() {
                 </div>
 
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between space-y-5">
-                  <div className="space-y-2">
-                    <h3 className="font-black text-gray-900 flex items-center gap-2 text-lg">
-                      <FileUp size={20} className="text-green-600" />
-                      رفع قائمة إكسل (Bulk)
-                    </h3>
-                    <p className="text-sm text-gray-500 font-medium">ارفع ملف Excel يحتوي على أعمدة "id" و "Name" و "Surname" لإضافة مجموعة طلاب دفعة واحدة.</p>
+                  <div className="flex justify-between items-start gap-4">
+                    <div className="space-y-2">
+                      <h3 className="font-black text-gray-900 flex items-center gap-2 text-lg">
+                        <FileUp size={20} className="text-green-600" />
+                        رفع قائمة إكسل (Bulk)
+                      </h3>
+                      <p className="text-sm text-gray-500 font-medium">ارفع ملف Excel يحتوي على أعمدة "id" و "Name" و "Surname" لإضافة مجموعة طلاب دفعة واحدة.</p>
+                    </div>
+                    <button 
+                      onClick={clearAllowedList}
+                      className="bg-red-50 text-red-600 p-3 rounded-xl hover:bg-red-100 transition-all shadow-sm shrink-0"
+                      title="حذف قاعدة البيانات بالكامل"
+                    >
+                      <Trash2 size={20} />
+                    </button>
                   </div>
                   
                   <div className="relative">
